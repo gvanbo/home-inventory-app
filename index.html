@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vanBoeschoten Home Inventory</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    /* Custom scrollbar for better aesthetics */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
+    .card-enter {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+        transition: opacity 300ms ease-out, transform 300ms ease-out;
+    }
+    .card-enter-active {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+  <div id="app-container" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- Header -->
+    <header class="mb-8">
+      <h1 class="text-4xl font-bold text-gray-900">Home Inventory</h1>
+      <p class="text-lg text-gray-600 mt-1">Keep track of all your stored items, big and small.</p>
+      <div id="auth-status" class="mt-2 text-xs text-gray-500">Connecting...</div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- Left Column: Add Item Form -->
+      <div class="lg:col-span-1">
+        <div class="bg-white p-6 rounded-xl shadow-md sticky top-8">
+          <h2 class="text-2xl font-semibold mb-4">Add New Item</h2>
+          <form id="add-item-form" class="space-y-4">
+            <div>
+              <label for="item-name" class="block text-sm font-medium text-gray-700">Item Name</label>
+              <input type="text" id="item-name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+            </div>
+
+            <div>
+              <label for="item-category" class="block text-sm font-medium text-gray-700">Category</label>
+              <input type="text" id="item-category" list="category-suggestions" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Food, Electronics, Documents">
+              <datalist id="category-suggestions"></datalist>
+            </div>
+
+            <div id="expiration-date-wrapper" class="hidden">
+              <label for="item-expiration" class="block text-sm font-medium text-gray-700">Expiration Date</label>
+              <input type="date" id="item-expiration" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+
+            <div>
+              <label for="item-room" class="block text-sm font-medium text-gray-700">Room</label>
+              <input type="text" id="item-room" list="room-suggestions" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Garage, Basement, Kitchen Pantry" required>
+              <datalist id="room-suggestions"></datalist>
+            </div>
+
+            <div>
+              <label for="item-container" class="block text-sm font-medium text-gray-700">Container / Location</label>
+              <input type="text" id="item-container" list="container-suggestions" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="e.g., Box #3, Top Shelf, Tool Chest">
+              <datalist id="container-suggestions"></datalist>
+            </div>
+
+            <div>
+              <label for="item-photo" class="block text-sm font-medium text-gray-700">Photo</label>
+              <input type="file" id="item-photo" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+              <img id="image-preview" src="" class="mt-4 rounded-md max-h-40 hidden" alt="Image preview" />
+            </div>
+
+            <button type="submit" id="submit-button" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 font-semibold transition-all duration-200">
+              Add Item
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right Column: Inventory Display -->
+      <div class="lg:col-span-2">
+        <div class="bg-white p-6 rounded-xl shadow-md">
+          <!-- Filters and Search -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="flex justify-between items-center sm:col-span-4">
+              <h2 class="text-2xl font-semibold">Your Inventory</h2>
+              <button id="export-csv-btn" class="text-sm bg-green-500 text-white py-1 px-3 rounded-md shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 font-semibold transition-all duration-200">
+                Export to CSV
+              </button>
+            </div>
+            <div>
+              <label for="filter-search" class="block text-sm font-medium text-gray-700">Search</label>
+              <input type="text" id="filter-search" placeholder="Search by name..." class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div>
+              <label for="filter-room" class="block text-sm font-medium text-gray-700">Room</label>
+              <select id="filter-room" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <option value="">All Rooms</option>
+              </select>
+            </div>
+            <div>
+              <label for="filter-container" class="block text-sm font-medium text-gray-700">Container</label>
+              <select id="filter-container" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <option value="">All Containers</option>
+              </select>
+            </div>
+            <div>
+              <label for="filter-category" class="block text-sm font-medium text-gray-700">Category</label>
+              <select id="filter-category" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <option value="">All Categories</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Item List -->
+          <div id="inventory-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Items will be injected here by JavaScript -->
+          </div>
+          <div id="loading-state" class="text-center py-10">
+            <p class="text-gray-500">Loading inventory...</p>
+          </div>
+          <div id="empty-state" class="hidden text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No items found</h3>
+            <p class="mt-1 text-sm text-gray-500">Get started by adding an item using the form on the left.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+      <div class="mt-3 text-center">
+        <h3 id="modal-title" class="text-lg leading-6 font-medium text-gray-900"></h3>
+        <div class="mt-2 px-7 py-3">
+          <p id="modal-message" class="text-sm text-gray-500"></p>
+        </div>
+        <div class="items-center px-4 py-3">
+          <button id="modal-close" class="px-4 py-2 bg-indigo-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="edit-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+      <h3 class="text-2xl font-semibold mb-4">Edit Item</h3>
+      <form id="edit-item-form" class="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+        <input type="hidden" id="edit-item-id">
+        <div>
+          <label for="edit-item-name" class="block text-sm font-medium text-gray-700">Item Name</label>
+          <input type="text" id="edit-item-name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+        </div>
+        <div>
+          <label for="edit-item-category" class="block text-sm font-medium text-gray-700">Category</label>
+          <input type="text" id="edit-item-category" list="category-suggestions" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+        </div>
+        <div id="edit-expiration-date-wrapper" class="hidden">
+          <label for="edit-item-expiration" class="block text-sm font-medium text-gray-700">Expiration Date</label>
+          <input type="date" id="edit-item-expiration" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+        </div>
+        <div>
+          <label for="edit-item-room" class="block text-sm font-medium text-gray-700">Room</label>
+          <input type="text" id="edit-item-room" list="room-suggestions" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+        </div>
+        <div>
+          <label for="edit-item-container" class="block text-sm font-medium text-gray-700">Container / Location</label>
+          <input type="text" id="edit-item-container" list="container-suggestions" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+        </div>
+      </form>
+      <div class="flex justify-end space-x-3 mt-6">
+        <button type="button" id="edit-modal-cancel" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 font-semibold">Cancel</button>
+        <button type="submit" form="edit-item-form" id="update-item-button" class="bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 font-semibold">Update Item</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirm-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+      <div class="mt-3 text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+          <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </div>
+        <h3 id="confirm-title" class="text-lg leading-6 font-medium text-gray-900 mt-4"></h3>
+        <div class="mt-2 px-7 py-3">
+          <p id="confirm-message" class="text-sm text-gray-500"></p>
+        </div>
+        <div class="items-center px-4 py-3 flex justify-center space-x-4">
+          <button id="confirm-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-300 focus:outline-none">Cancel</button>
+          <button id="confirm-ok" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/main.js"></script>
+
+</body>
+</html>
